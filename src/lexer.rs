@@ -1,6 +1,9 @@
 use std::str::Bytes;
 
-use crate::token::{Token, TokenType::*};
+use crate::token::{
+    Token,
+    TokenType::{self, *},
+};
 
 #[derive(Debug)]
 pub struct Lexer<'a> {
@@ -15,11 +18,22 @@ impl Lexer<'_> {
             ch: 0,
         }
     }
-    pub fn ch_byte_to_str(&self) -> String {
-        std::str::from_utf8(&vec![self.ch]).unwrap().to_string()
+
+    pub fn next_token(&mut self) -> Token {
+        self.read_char();
+        let literal = self.ch_byte_to_str();
+        let token_type = self.to_token_type(&literal);
+        Token {
+            token_type,
+            literal,
+        }
     }
 
-    pub fn read_char(&mut self) {
+    fn ch_byte_to_str(&self) -> String {
+        std::str::from_utf8(&[self.ch]).unwrap().to_string()
+    }
+
+    fn read_char(&mut self) {
         self.ch = if let Some(v) = self.input.next() {
             v
         } else {
@@ -27,10 +41,8 @@ impl Lexer<'_> {
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
-        self.read_char();
-        let literal = self.ch_byte_to_str();
-        let token_type = match &literal as &str {
+    fn to_token_type(&self, literal: &str) -> TokenType {
+        match literal {
             "=" => ASSIGN,
             ";" => SEMICOLON,
             "(" => LPAREN,
@@ -43,10 +55,6 @@ impl Lexer<'_> {
                 0 => EOF,
                 _ => ILLEGAL,
             },
-        };
-        Token {
-            token_type,
-            literal,
         }
     }
 }
