@@ -9,6 +9,4 @@ fn main() {
             println!("{:?}", token)
         }
     }
-
-
 }
