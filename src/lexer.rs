@@ -74,7 +74,7 @@ impl Lexer {
             },
             _ => {
                 if self.input.position() as usize == self.input.get_ref().len() {
-                    return Token {
+                    Token {
                         token_type: EOF,
                         literal: literal.to_string(),
                     };
