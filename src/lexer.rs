@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, str::Utf8Error};
 
 use regex::Regex;
 
@@ -14,22 +14,19 @@ impl Lexer {
     pub fn new(input: &str) -> Lexer {
         Lexer {
             input: Cursor::new(input.as_bytes().to_vec()),
-            // ch: 0,
-            // // position: 0
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
-        match get_cuurent_value(&self.input) {
-            None => Token {
+    pub fn next_token(&mut self) -> Result<Token, Utf8Error> {
+        if let Some(current_value) = get_cuurent_value(&self.input) {
+            let token = ch_byte_to_str(current_value).and_then(|item| self.get_token(&item));
+            self.read_char();
+            token
+        } else {
+            ch_byte_to_str(0).map(|literal| Token {
                 token_type: EOF,
-                literal: ch_byte_to_str(0),
-            },
-            Some(current_value) => {
-                let token = self.get_token(&ch_byte_to_str(current_value));
-                self.read_char();
-                token
-            }
+                literal,
+            })
         }
     }
 
@@ -37,92 +34,85 @@ impl Lexer {
         self.input.set_position(self.input.position() + 1);
     }
 
-    fn get_token(&mut self, literal: &str) -> Token {
-        // println!("{}", self.input.position());
+    fn get_token(&mut self, literal: &str) -> Result<Token, Utf8Error> {
         match literal {
-            "=" => Token {
+            "=" => Ok(Token {
                 token_type: ASSIGN,
                 literal: literal.to_string(),
-            },
-            ";" => Token {
+            }),
+            ";" => Ok(Token {
                 token_type: SEMICOLON,
                 literal: literal.to_string(),
-            },
-            "(" => Token {
+            }),
+            "(" => Ok(Token {
                 token_type: LPAREN,
                 literal: literal.to_string(),
-            },
-            ")" => Token {
+            }),
+            ")" => Ok(Token {
                 token_type: RPAREN,
                 literal: literal.to_string(),
-            },
-            "," => Token {
+            }),
+            "," => Ok(Token {
                 token_type: COMMA,
                 literal: literal.to_string(),
-            },
-            "+" => Token {
+            }),
+            "+" => Ok(Token {
                 token_type: PLUS,
                 literal: literal.to_string(),
-            },
-            "{" => Token {
+            }),
+            "{" => Ok(Token {
                 token_type: LBRACE,
                 literal: literal.to_string(),
-            },
-            "}" => Token {
+            }),
+            "}" => Ok(Token {
                 token_type: RBRACE,
                 literal: literal.to_string(),
-            },
+            }),
             _ => {
-                if self.input.position() as usize == self.input.get_ref().len() {
-                    Token {
-                        token_type: EOF,
-                        literal: literal.to_string(),
-                    };
-                }
-
                 if is_letter(literal) {
                     self.read_identifier()
                 } else {
-                    Token {
+                    Ok(Token {
                         token_type: ILLEGAL,
                         literal: literal.to_string(),
-                    }
+                    })
                 }
             }
         }
     }
 
-    fn read_identifier(&mut self) -> Token {
+    fn read_identifier(&mut self) -> Result<Token, Utf8Error> {
         let current_position = self.input.position() as usize;
 
         loop {
-            match get_cuurent_value(&self.input) {
-                None => {
-                    return Token {
-                        token_type: IDENT,
-                        literal: std::str::from_utf8(&self.input.get_ref()[current_position..])
-                            .unwrap()
-                            .to_string(),
-                    };
-                }
-                Some(current_value) => {
-                    if !is_letter(&ch_byte_to_str(current_value)) {
-                        self.input.set_position(self.input.position() - 1);
-                        break;
+            if let Some(current_value) = get_cuurent_value(&self.input) {
+                match ch_byte_to_str(current_value) {
+                    Err(err) => return Err(err),
+                    Ok(item) => {
+                        if !is_letter(&item) {
+                            self.input.set_position(self.input.position() - 1);
+                            break;
+                        }
+                        self.read_char();
                     }
-                    self.read_char();
                 }
+            } else {
+                return std::str::from_utf8(&self.input.get_ref()[current_position..]).map(|s| {
+                    Token {
+                        token_type: IDENT,
+                        literal: s.to_string(),
+                    }
+                });
             }
         }
 
-        Token {
+        std::str::from_utf8(
+            &self.input.get_ref()[current_position..self.input.position() as usize + 1],
+        )
+        .map(|s| Token {
             token_type: IDENT,
-            literal: std::str::from_utf8(
-                &self.input.get_ref()[current_position..self.input.position() as usize + 1],
-            )
-            .unwrap()
-            .to_string(),
-        }
+            literal: s.to_string(),
+        })
     }
 }
 
@@ -134,8 +124,8 @@ fn get_cuurent_value(item: &Cursor<Vec<u8>>) -> Option<u8> {
     }
 }
 
-fn ch_byte_to_str(ch: u8) -> String {
-    std::str::from_utf8(&[ch]).unwrap().to_string()
+fn ch_byte_to_str(ch: u8) -> Result<String, Utf8Error> {
+    std::str::from_utf8(&[ch]).map(|i| i.to_string())
 }
 
 fn is_letter(ch: &str) -> bool {
@@ -164,7 +154,7 @@ fn test_1() {
     let mut l = Lexer::new(input);
     let mut tokens: Vec<Token> = vec![];
     for _n in 0..l.input.get_ref().len() + 1 {
-        let token = l.next_token();
+        let token = l.next_token().unwrap();
         println!("{:?}", &token);
         if token.token_type == EOF {
             tokens.push(token);
@@ -192,7 +182,7 @@ fn test_2() {
     let mut l = Lexer::new(&input);
     let mut tokens: Vec<Token> = vec![];
     for _n in 0..l.input.get_ref().len() + 1 {
-        let token = l.next_token();
+        let token = l.next_token().unwrap();
         if token.token_type == EOF {
             break;
         }
