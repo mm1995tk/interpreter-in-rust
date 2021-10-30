@@ -60,13 +60,41 @@ impl Lexer<'_> {
 }
 
 #[test]
-fn test() {
+fn test_1() {
     let input = "=+(){},;";
     let mut l = Lexer::new(input);
-    for _ in 0..l.input.len() {
-        l.read_char();
+    let mut tokens: Vec<Token> = vec![];
+    for _n in 0..l.input.len() + 1 {
+        let token = l.next_token();
+        println!("{:?}", &token);
+        tokens.push(token);
+        // assert_eq!(l.ch_byte_to_str(), &input[n..n+1]);
     }
-    assert_eq!(l.ch_byte_to_str(), ";");
-    l.read_char();
-    assert_eq!(l.ch, 0);
+    let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
+    assert_eq!(
+        token_types,
+        vec![ASSIGN, PLUS, LPAREN, RPAREN, LBRACE, RBRACE, COMMA, SEMICOLON, EOF]
+    );
+}
+
+#[test]
+fn test_2() {
+    let input = std::fs::read_to_string("files/first.txt").unwrap();
+    let mut l = Lexer::new(&input);
+    let mut tokens: Vec<Token> = vec![];
+    for _n in 0..l.input.len() + 1 {
+        let token = l.next_token();
+        println!("{:?}", &token);
+        tokens.push(token);
+    }
+    let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
+    assert_eq!(
+        token_types,
+        vec![
+            LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT,
+            ASSIGN, FUNCTION, LPAREN, IDENT, COMMA, IDENT, RPAREN, LBRACE, IDENT, PLUS, IDENT,
+            SEMICOLON, RBRACE, SEMICOLON, LET, IDENT, ASSIGN, IDENT, LPAREN, IDENT, COMMA, IDENT,
+            RPAREN, SEMICOLON, EOF
+        ]
+    );
 }
