@@ -72,10 +72,22 @@ impl Lexer {
                 if is_letter(literal) {
                     self.read_identifier()
                 } else {
-                    Ok(Token {
-                        token_type: ILLEGAL,
-                        literal: literal.to_string(),
-                    })
+                    if literal == " " || literal == "\n" {
+                        self.read_char();
+                        if let Some(current_value) = get_cuurent_value(&self.input) {
+                            ch_byte_to_str(current_value).and_then(|i| self.get_token(&i))
+                        } else {
+                            ch_byte_to_str(0).map(|literal| Token {
+                                token_type: EOF,
+                                literal,
+                            })
+                        }
+                    } else {
+                        Ok(Token {
+                            token_type: ILLEGAL,
+                            literal: literal.to_string(),
+                        })
+                    }
                 }
             }
         }
@@ -186,6 +198,7 @@ fn test_2() {
         if token.token_type == EOF {
             break;
         }
+        println!("{:?}", token);
         tokens.push(token);
     }
     let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
