@@ -69,7 +69,7 @@ impl Lexer {
                 literal: literal.to_string(),
             }),
             _ => {
-                if is_letter(literal) {
+                if is_letter(literal) || is_number(literal) {
                     self.read_identifier()
                 } else {
                     if literal == " " || literal == "\n" {
@@ -101,7 +101,7 @@ impl Lexer {
                 match ch_byte_to_str(current_value) {
                     Err(err) => return Err(err),
                     Ok(item) => {
-                        if !is_letter(&item) {
+                        if !is_letter(&item) && !is_number(&item) {
                             self.input.set_position(self.input.position() - 1);
                             break;
                         }
@@ -111,7 +111,7 @@ impl Lexer {
             } else {
                 return std::str::from_utf8(&self.input.get_ref()[current_position..]).map(|s| {
                     Token {
-                        token_type: IDENT,
+                        token_type: if is_number(s) { INT } else { IDENT },
                         literal: s.to_string(),
                     }
                 });
@@ -122,7 +122,7 @@ impl Lexer {
             &self.input.get_ref()[current_position..self.input.position() as usize + 1],
         )
         .map(|s| Token {
-            token_type: IDENT,
+            token_type: if is_number(s) { INT } else { IDENT },
             literal: s.to_string(),
         })
     }
@@ -148,10 +148,19 @@ fn is_letter(ch: &str) -> bool {
     }
 }
 
+fn is_number(ch: &str) -> bool {
+    let re = Regex::new(r"^\d{1}$");
+    match re {
+        Ok(regex) => regex.is_match(ch),
+        Err(_) => false,
+    }
+}
+
 #[test]
 fn sandbox() {
-    let x = vec![1, 2, 3];
-    println!("{:?}", &x[2..3]);
+    println!("{:?}", is_number("1"));
+    println!("{:?}", is_number("12"));
+    println!("{:?}", is_number("a"));
 
     // println!("{:?}", 1)
 }
