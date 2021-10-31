@@ -2,7 +2,7 @@ use std::{io::Cursor, str::Utf8Error};
 
 use regex::Regex;
 
-use crate::token::{Token, TokenType::*};
+use crate::token::{judge_token, Token, TokenType::*};
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -34,45 +34,46 @@ impl Lexer {
         self.input.set_position(self.input.position() + 1);
     }
 
-    fn get_token(&mut self, literal: &str) -> Result<Token, Utf8Error> {
-        match literal {
+    fn get_token(&mut self, literal_ref: &str) -> Result<Token, Utf8Error> {
+        let literal = literal_ref.to_string();
+        match literal_ref {
             "=" => Ok(Token {
                 token_type: ASSIGN,
-                literal: literal.to_string(),
+                literal,
             }),
             ";" => Ok(Token {
                 token_type: SEMICOLON,
-                literal: literal.to_string(),
+                literal,
             }),
             "(" => Ok(Token {
                 token_type: LPAREN,
-                literal: literal.to_string(),
+                literal,
             }),
             ")" => Ok(Token {
                 token_type: RPAREN,
-                literal: literal.to_string(),
+                literal,
             }),
             "," => Ok(Token {
                 token_type: COMMA,
-                literal: literal.to_string(),
+                literal,
             }),
             "+" => Ok(Token {
                 token_type: PLUS,
-                literal: literal.to_string(),
+                literal,
             }),
             "{" => Ok(Token {
                 token_type: LBRACE,
-                literal: literal.to_string(),
+                literal,
             }),
             "}" => Ok(Token {
                 token_type: RBRACE,
-                literal: literal.to_string(),
+                literal,
             }),
             _ => {
-                if is_letter(literal) || is_number(literal) {
+                if is_letter(literal_ref) || is_number(literal_ref) {
                     self.read_identifier()
                 } else {
-                    if literal == " " || literal == "\n" {
+                    if literal_ref == " " || literal_ref == "\n" {
                         self.read_char();
                         if let Some(current_value) = get_cuurent_value(&self.input) {
                             ch_byte_to_str(current_value).and_then(|i| self.get_token(&i))
@@ -85,7 +86,7 @@ impl Lexer {
                     } else {
                         Ok(Token {
                             token_type: ILLEGAL,
-                            literal: literal.to_string(),
+                            literal,
                         })
                     }
                 }
@@ -111,7 +112,15 @@ impl Lexer {
             } else {
                 return std::str::from_utf8(&self.input.get_ref()[current_position..]).map(|s| {
                     Token {
-                        token_type: if is_number(s) { INT } else { IDENT },
+                        token_type: if is_number(s) {
+                            INT
+                        } else {
+                            if let Some(keyword) = judge_token(s) {
+                                KeyWord(keyword)
+                            } else {
+                                IDENT
+                            }
+                        },
                         literal: s.to_string(),
                     }
                 });
@@ -122,7 +131,15 @@ impl Lexer {
             &self.input.get_ref()[current_position..self.input.position() as usize + 1],
         )
         .map(|s| Token {
-            token_type: if is_number(s) { INT } else { IDENT },
+            token_type: if is_number(s) {
+                INT
+            } else {
+                if let Some(keyword) = judge_token(s) {
+                    KeyWord(keyword)
+                } else {
+                    IDENT
+                }
+            },
             literal: s.to_string(),
         })
     }
@@ -149,7 +166,7 @@ fn is_letter(ch: &str) -> bool {
 }
 
 fn is_number(ch: &str) -> bool {
-    let re = Regex::new(r"^\d{1}$");
+    let re = Regex::new(r"\d");
     match re {
         Ok(regex) => regex.is_match(ch),
         Err(_) => false,
@@ -168,6 +185,7 @@ fn sandbox() {
 #[test]
 fn test_1() {
     use crate::token::{
+        KeyWord::*,
         Token,
         TokenType::{self, *},
     };
@@ -187,7 +205,17 @@ fn test_1() {
     assert_eq!(
         token_types,
         vec![
-            IDENT, ASSIGN, PLUS, LPAREN, RPAREN, IDENT, LBRACE, RBRACE, COMMA, SEMICOLON, IDENT,
+            IDENT,
+            ASSIGN,
+            PLUS,
+            LPAREN,
+            RPAREN,
+            IDENT,
+            LBRACE,
+            RBRACE,
+            COMMA,
+            SEMICOLON,
+            KeyWord(LET),
             EOF
         ]
     );
@@ -196,6 +224,7 @@ fn test_1() {
 #[test]
 fn test_2() {
     use crate::token::{
+        KeyWord::*,
         Token,
         TokenType::{self, *},
     };
@@ -204,20 +233,54 @@ fn test_2() {
     let mut tokens: Vec<Token> = vec![];
     for _n in 0..l.input.get_ref().len() + 1 {
         let token = l.next_token().unwrap();
+        println!("{:?}", token);
         if token.token_type == EOF {
+            tokens.push(token);
             break;
         }
-        println!("{:?}", token);
         tokens.push(token);
     }
     let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
     assert_eq!(
         token_types,
         vec![
-            LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT,
-            ASSIGN, FUNCTION, LPAREN, IDENT, COMMA, IDENT, RPAREN, LBRACE, IDENT, PLUS, IDENT,
-            SEMICOLON, RBRACE, SEMICOLON, LET, IDENT, ASSIGN, IDENT, LPAREN, IDENT, COMMA, IDENT,
-            RPAREN, SEMICOLON, EOF
+            KeyWord(LET),
+            IDENT,
+            ASSIGN,
+            INT,
+            SEMICOLON,
+            KeyWord(LET),
+            IDENT,
+            ASSIGN,
+            INT,
+            SEMICOLON,
+            KeyWord(LET),
+            IDENT,
+            ASSIGN,
+            KeyWord(FUNCTION),
+            LPAREN,
+            IDENT,
+            COMMA,
+            IDENT,
+            RPAREN,
+            LBRACE,
+            IDENT,
+            PLUS,
+            IDENT,
+            SEMICOLON,
+            RBRACE,
+            SEMICOLON,
+            KeyWord(LET),
+            IDENT,
+            ASSIGN,
+            IDENT,
+            LPAREN,
+            IDENT,
+            COMMA,
+            IDENT,
+            RPAREN,
+            SEMICOLON,
+            EOF
         ]
     );
 }

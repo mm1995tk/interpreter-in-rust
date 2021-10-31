@@ -12,8 +12,21 @@ pub enum TokenType {
     RPAREN,
     LBRACE,
     RBRACE,
+    KeyWord(KeyWord),
+}
+#[derive(Debug, PartialEq, Eq)]
+pub enum KeyWord {
     FUNCTION,
     LET,
+}
+
+pub fn judge_token(literal: &str) -> Option<KeyWord> {
+    use crate::token::KeyWord::*;
+    match literal {
+        "let" => Some(LET),
+        "fn" => Some(FUNCTION),
+        _ => None,
+    }
 }
 
 #[derive(Debug)]
