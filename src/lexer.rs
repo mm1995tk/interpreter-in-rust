@@ -50,9 +50,50 @@ impl Lexer {
         }
     }
 
+    fn peek_char(&self) -> Result<Option<String>, Utf8Error> {
+        if self.input.position() as usize >= self.input.get_ref().len() {
+            Ok(None)
+        } else {
+            let byte = self.input.get_ref()[self.input.position() as usize + 1];
+            std::str::from_utf8(&[byte]).map(|i| Some(i.to_string()))
+        }
+    }
+
+    fn judge_two_cahr_token(&mut self, literal: &str) -> Result<Token, Utf8Error> {
+        let next_char = self.peek_char();
+
+        next_char.map(|next| match next.as_deref() {
+            None => Token {
+                token_type: if literal == "=" { ASSIGN } else { BANG },
+                literal: literal.to_string(),
+            },
+            Some(value) => match value {
+                "=" => {
+                    self.read_char();
+                    Token {
+                        token_type: if literal == "=" { EQ } else { NotEQ },
+                        literal: if literal == "=" {
+                            format!("==")
+                        } else {
+                            format!("!=")
+                        },
+                    }
+                }
+                _ => Token {
+                    token_type: if literal == "=" { ASSIGN } else { BANG },
+                    literal: literal.to_string(),
+                },
+            },
+        })
+    }
+
     fn get_token(&mut self, literal_ref: &str) -> Result<Token, Utf8Error> {
         let literal = literal_ref.to_string();
         let maybe_token_type = get_token_type(&literal);
+
+        if literal_ref == "=" || literal_ref == "!" {
+            return self.judge_two_cahr_token(literal_ref);
+        }
 
         if let Some(token_type) = maybe_token_type {
             Ok(Token {
