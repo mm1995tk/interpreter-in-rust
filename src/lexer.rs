@@ -21,25 +21,25 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token, Utf8Error> {
         loop {
             match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
-                Some(value) => {
-                    match value {
-                        Ok(w) if &w == " " || &w == "\n" => {
-                            self.read_char();
-                        },
-                        Ok(v) => {
-                            let token  = self.get_token(&v);
-                            self.read_char();
-                            return token;
-                        },
-                        Err(e) => {return Err(e);}
-                    }
-                },
+                Some(Ok(w)) if &w == " " || &w == "\n" => {
+                    self.read_char();
+                }
+                Some(Ok(v)) => {
+                    let token = self.get_token(&v);
+                    self.read_char();
+                    return token;
+                }
+                Some(Err(e)) => {
+                    return Err(e);
+                }
                 None => {
-                    return ch_byte_to_str(0).map(|literal|Token {token_type: EOF, literal})
+                    return ch_byte_to_str(0).map(|literal| Token {
+                        token_type: EOF,
+                        literal,
+                    })
                 }
             }
         }
-        
     }
 
     fn read_char(&mut self) {
