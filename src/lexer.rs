@@ -1,3 +1,4 @@
+use core::panic;
 use std::{io::Cursor, str::Utf8Error};
 
 use regex::Regex;
@@ -18,16 +19,27 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Result<Token, Utf8Error> {
-        if let Some(current_value) = get_cuurent_value(&self.input) {
-            let token = ch_byte_to_str(current_value).and_then(|item| self.get_token(&item));
-            self.read_char();
-            token
-        } else {
-            ch_byte_to_str(0).map(|literal| Token {
-                token_type: EOF,
-                literal,
-            })
+        loop {
+            match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
+                Some(value) => {
+                    match value {
+                        Ok(w) if &w == " " || &w == "\n" => {
+                            self.read_char();
+                        },
+                        Ok(v) => {
+                            let token  = self.get_token(&v);
+                            self.read_char();
+                            return token;
+                        },
+                        Err(e) => {return Err(e);}
+                    }
+                },
+                None => {
+                    return ch_byte_to_str(0).map(|literal|Token {token_type: EOF, literal})
+                }
+            }
         }
+        
     }
 
     fn read_char(&mut self) {
@@ -74,15 +86,7 @@ impl Lexer {
                     self.read_identifier()
                 } else {
                     if literal_ref == " " || literal_ref == "\n" {
-                        self.read_char();
-                        if let Some(current_value) = get_cuurent_value(&self.input) {
-                            ch_byte_to_str(current_value).and_then(|i| self.get_token(&i))
-                        } else {
-                            ch_byte_to_str(0).map(|literal| Token {
-                                token_type: EOF,
-                                literal,
-                            })
-                        }
+                        panic!("white spaceはスキップしてからこの関数を呼び出してください。");
                     } else {
                         Ok(Token {
                             token_type: ILLEGAL,
