@@ -51,7 +51,7 @@ impl Lexer {
     }
 
     fn peek_char(&self) -> Result<Option<String>, Utf8Error> {
-        if self.input.position() as usize >= self.input.get_ref().len() {
+        if self.input.position() as usize + 1 >= self.input.get_ref().len() {
             Ok(None)
         } else {
             let byte = self.input.get_ref()[self.input.position() as usize + 1];
