@@ -1,9 +1,8 @@
-use core::panic;
 use std::{io::Cursor, str::Utf8Error};
 
 use regex::Regex;
 
-use crate::token::{judge_token, Token, TokenType::*};
+use crate::token::{get_token_type, Token, TokenType::*};
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -53,63 +52,26 @@ impl Lexer {
 
     fn get_token(&mut self, literal_ref: &str) -> Result<Token, Utf8Error> {
         let literal = literal_ref.to_string();
-        match literal_ref {
-            "=" => Ok(Token {
-                token_type: ASSIGN,
+        let maybe_token_type = get_token_type(&literal);
+
+        if let Some(token_type) = maybe_token_type {
+            Ok(Token {
+                token_type,
                 literal,
-            }),
-            ";" => Ok(Token {
-                token_type: SEMICOLON,
-                literal,
-            }),
-            "(" => Ok(Token {
-                token_type: LPAREN,
-                literal,
-            }),
-            ")" => Ok(Token {
-                token_type: RPAREN,
-                literal,
-            }),
-            "," => Ok(Token {
-                token_type: COMMA,
-                literal,
-            }),
-            "+" => Ok(Token {
-                token_type: PLUS,
-                literal,
-            }),
-            "{" => Ok(Token {
-                token_type: LBRACE,
-                literal,
-            }),
-            "}" => Ok(Token {
-                token_type: RBRACE,
-                literal,
-            }),
-            _ => {
-                if is_letter(literal_ref) || is_number(literal_ref) {
-                    self.read_identifier()
-                } else {
-                    if literal_ref == " "
-                        || literal_ref == "\n"
-                        || literal_ref == "\t"
-                        || literal_ref == "\r"
-                    {
-                        panic!("white spaceはスキップしてからこの関数を呼び出してください。");
-                    } else {
-                        Ok(Token {
-                            token_type: ILLEGAL,
-                            literal,
-                        })
-                    }
-                }
+            })
+        } else {
+            if is_letter(literal_ref) || is_number(literal_ref) {
+                self.read_identifier()
+            } else {
+                Ok(Token {
+                    token_type: ILLEGAL,
+                    literal,
+                })
             }
         }
     }
 
-    fn read_identifier(&mut self) -> Result<Token, Utf8Error> {
-        let current_position = self.input.position() as usize;
-
+    fn cursor_identifier(&mut self) {
         loop {
             match get_cuurent_value(&self.input).map(|current_value| ch_byte_to_str(current_value))
             {
@@ -126,21 +88,28 @@ impl Lexer {
                 }
             }
         }
+    }
 
-        std::str::from_utf8(
-            &self.input.get_ref()[current_position..self.input.position() as usize + 1],
-        )
-        .map(|s| Token {
-            token_type: if is_number(s) {
+    fn read_identifier(&mut self) -> Result<Token, Utf8Error> {
+        let current_position = self.input.position() as usize;
+        self.cursor_identifier();
+        let bytes = &self.input.get_ref()[current_position..self.input.position() as usize + 1];
+
+        std::str::from_utf8(bytes).map(|s| {
+            let token_type = if is_number(s) {
                 INT
             } else {
-                if let Some(keyword) = judge_token(s) {
-                    KeyWord(keyword)
+                if let Some(keyword) = get_token_type(s) {
+                    keyword
                 } else {
                     IDENT
                 }
-            },
-            literal: s.to_string(),
+            };
+
+            Token {
+                token_type,
+                literal: s.to_string(),
+            }
         })
     }
 }
@@ -175,15 +144,7 @@ fn is_number(ch: &str) -> bool {
 
 #[test]
 fn sandbox() {
-    let cur = 3 as usize;
-    let next = 5 as usize;
-    let x = "abcdef";
-
-    println!("{:?}", &x[cur..6]);
-    println!("{:?}", &x[cur..next]);
-    println!("{:?}", &x[cur..]);
-
-    // println!("{:?}", 1)
+    assert_eq!(true, true);
 }
 
 #[test]
