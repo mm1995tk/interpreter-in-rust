@@ -8,7 +8,6 @@ use crate::token::{judge_token, Token, TokenType::*};
 #[derive(Debug)]
 pub struct Lexer {
     pub input: Cursor<Vec<u8>>,
-    // pub ch: u8,
 }
 
 impl Lexer {
@@ -19,31 +18,37 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Result<Token, Utf8Error> {
-        loop {
-            match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
-                Some(Ok(w)) if &w == " " || &w == "\n" => {
-                    self.read_char();
-                }
-                Some(Ok(v)) => {
-                    let token = self.get_token(&v);
-                    self.read_char();
-                    return token;
-                }
-                Some(Err(e)) => {
-                    return Err(e);
-                }
-                None => {
-                    return ch_byte_to_str(0).map(|literal| Token {
-                        token_type: EOF,
-                        literal,
-                    })
-                }
+        self.skip_whitespace();
+
+        match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
+            Some(Err(e)) => Err(e),
+            Some(Ok(v)) => {
+                let token = self.get_token(&v);
+                self.read_char();
+                token
             }
+            None => ch_byte_to_str(0).map(|literal| Token {
+                token_type: EOF,
+                literal,
+            }),
         }
     }
 
     fn read_char(&mut self) {
         self.input.set_position(self.input.position() + 1);
+    }
+
+    fn skip_whitespace(&mut self) {
+        loop {
+            match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
+                Some(Ok(ref w)) if w == " " || w == "\n" || w == "\t" || w == "\r" => {
+                    self.read_char();
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
     }
 
     fn get_token(&mut self, literal_ref: &str) -> Result<Token, Utf8Error> {
@@ -85,7 +90,11 @@ impl Lexer {
                 if is_letter(literal_ref) || is_number(literal_ref) {
                     self.read_identifier()
                 } else {
-                    if literal_ref == " " || literal_ref == "\n" {
+                    if literal_ref == " "
+                        || literal_ref == "\n"
+                        || literal_ref == "\t"
+                        || literal_ref == "\r"
+                    {
                         panic!("white spaceはスキップしてからこの関数を呼び出してください。");
                     } else {
                         Ok(Token {
@@ -102,32 +111,19 @@ impl Lexer {
         let current_position = self.input.position() as usize;
 
         loop {
-            if let Some(current_value) = get_cuurent_value(&self.input) {
-                match ch_byte_to_str(current_value) {
-                    Err(err) => return Err(err),
-                    Ok(item) => {
-                        if !is_letter(&item) && !is_number(&item) {
-                            self.input.set_position(self.input.position() - 1);
-                            break;
-                        }
-                        self.read_char();
+            match get_cuurent_value(&self.input).map(|current_value| ch_byte_to_str(current_value))
+            {
+                Some(Ok(item)) => {
+                    if !is_letter(&item) && !is_number(&item) {
+                        self.input.set_position(self.input.position() - 1);
+                        break;
                     }
+                    self.read_char();
                 }
-            } else {
-                return std::str::from_utf8(&self.input.get_ref()[current_position..]).map(|s| {
-                    Token {
-                        token_type: if is_number(s) {
-                            INT
-                        } else {
-                            if let Some(keyword) = judge_token(s) {
-                                KeyWord(keyword)
-                            } else {
-                                IDENT
-                            }
-                        },
-                        literal: s.to_string(),
-                    }
-                });
+                _ => {
+                    self.input.set_position(self.input.position() - 1);
+                    break;
+                }
             }
         }
 
@@ -179,9 +175,13 @@ fn is_number(ch: &str) -> bool {
 
 #[test]
 fn sandbox() {
-    println!("{:?}", is_number("1"));
-    println!("{:?}", is_number("12"));
-    println!("{:?}", is_number("a"));
+    let cur = 3 as usize;
+    let next = 5 as usize;
+    let x = "abcdef";
+
+    println!("{:?}", &x[cur..6]);
+    println!("{:?}", &x[cur..next]);
+    println!("{:?}", &x[cur..]);
 
     // println!("{:?}", 1)
 }
