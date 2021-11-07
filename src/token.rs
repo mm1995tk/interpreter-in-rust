@@ -2,7 +2,7 @@
 pub enum Token {
     ILLEGAL,
     EOF,
-    IDENT,
+    IDENT(Vec<u8>),
     INT,
     ASSIGN,
     PLUS,

@@ -41,6 +41,7 @@ impl Lexer {
             self.input.get_ref()[self.input.position() as usize]
         }
     }
+
     fn peek_char(&self) -> u8 {
         if self.input.position() as usize + 1 >= self.input.get_ref().len() {
             0
@@ -112,64 +113,149 @@ impl Lexer {
         } else if let Some(keyword) = get_token_type(bytes) {
             keyword
         } else {
-            Token::IDENT
+            Token::IDENT(bytes.to_vec())
         }
     }
 }
 
-#[test]
-fn test_1() {
-    use crate::token::Token::*;
-    let input = "let=+(!=)test{},;let";
-    let mut l = Lexer::new(input);
-    let mut tokens: Vec<Token> = vec![];
+#[cfg(test)]
+mod test {
 
-    loop {
-        let token = l.next_token();
-        println!("{:?}", &token);
-        if token == Token::EOF {
-            tokens.push(token);
-            break;
-        }
-        tokens.push(token);
+    use crate::{
+        lexer::Lexer,
+        token::Token::{self, *},
+    };
+
+    fn str_to_vec(s: &str) -> Vec<u8> {
+        s.as_bytes().to_vec()
     }
 
-    assert_eq!(
-        tokens,
-        vec![
-            LET, ASSIGN, PLUS, LPAREN, NotEQ, RPAREN, IDENT, LBRACE, RBRACE, COMMA, SEMICOLON, LET,
-            EOF
-        ]
-    );
-}
+    fn exec(input: &str) -> Vec<Token> {
+        let mut l = Lexer::new(input);
+        let mut tokens: Vec<Token> = vec![];
 
-#[test]
-fn test_2() {
-    use crate::token::Token::*;
-
-    let input = std::fs::read_to_string("files/first.txt").unwrap();
-    let mut l = Lexer::new(&input);
-    let mut tokens: Vec<Token> = vec![];
-    loop {
-        let token = l.next_token();
-        println!("{:?}", &token);
-        if token == Token::EOF {
+        loop {
+            let token = l.next_token();
+            println!("{:?}", &token);
+            if token == Token::EOF {
+                tokens.push(token);
+                break;
+            }
             tokens.push(token);
-            break;
         }
-        tokens.push(token);
+        tokens
     }
 
-    assert_eq!(
-        tokens,
-        vec![
-            LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT,
-            ASSIGN, FUNCTION, LPAREN, IDENT, COMMA, IDENT, RPAREN, LBRACE, IDENT, PLUS, IDENT,
-            SEMICOLON, RBRACE, SEMICOLON, LET, IDENT, ASSIGN, IDENT, LPAREN, IDENT, COMMA, IDENT,
-            RPAREN, SEMICOLON, BANG, MINUS, SLASH, ASTERISK, INT, SEMICOLON, INT, LT, INT, GT, INT,
-            SEMICOLON, IF, LPAREN, INT, LT, INT, RPAREN, LBRACE, RETURN, TRUE, SEMICOLON, RBRACE,
-            ELSE, LBRACE, RETURN, FALSE, SEMICOLON, RBRACE, INT, EQ, INT, SEMICOLON, INT, NotEQ,
-            INT, SEMICOLON, EOF
-        ]
-    );
+    #[test]
+    fn test_1() {
+        let input = "let=+(!=)test{},;let";
+        let tokens: Vec<Token> = exec(input);
+
+        assert_eq!(
+            tokens,
+            vec![
+                LET,
+                ASSIGN,
+                PLUS,
+                LPAREN,
+                NotEQ,
+                RPAREN,
+                IDENT(str_to_vec("test")),
+                LBRACE,
+                RBRACE,
+                COMMA,
+                SEMICOLON,
+                LET,
+                EOF
+            ]
+        );
+    }
+
+    #[test]
+    fn test_2() {
+        use crate::token::Token::*;
+
+        let input = std::fs::read_to_string("files/first.txt").unwrap();
+        let tokens = exec(&input);
+
+        assert_eq!(
+            tokens,
+            vec![
+                LET,
+                IDENT(str_to_vec("five")),
+                ASSIGN,
+                INT,
+                SEMICOLON,
+                LET,
+                IDENT(str_to_vec("ten")),
+                ASSIGN,
+                INT,
+                SEMICOLON,
+                LET,
+                IDENT(str_to_vec("add")),
+                ASSIGN,
+                FUNCTION,
+                LPAREN,
+                IDENT(str_to_vec("x")),
+                COMMA,
+                IDENT(str_to_vec("y")),
+                RPAREN,
+                LBRACE,
+                IDENT(str_to_vec("x")),
+                PLUS,
+                IDENT(str_to_vec("y")),
+                SEMICOLON,
+                RBRACE,
+                SEMICOLON,
+                LET,
+                IDENT(str_to_vec("result")),
+                ASSIGN,
+                IDENT(str_to_vec("add")),
+                LPAREN,
+                IDENT(str_to_vec("five")),
+                COMMA,
+                IDENT(str_to_vec("ten")),
+                RPAREN,
+                SEMICOLON,
+                BANG,
+                MINUS,
+                SLASH,
+                ASTERISK,
+                INT,
+                SEMICOLON,
+                INT,
+                LT,
+                INT,
+                GT,
+                INT,
+                SEMICOLON,
+                IF,
+                LPAREN,
+                INT,
+                LT,
+                INT,
+                RPAREN,
+                LBRACE,
+                RETURN,
+                TRUE,
+                SEMICOLON,
+                RBRACE,
+                ELSE,
+                LBRACE,
+                RETURN,
+                FALSE,
+                SEMICOLON,
+                RBRACE,
+                INT,
+                EQ,
+                INT,
+                SEMICOLON,
+                INT,
+                NotEQ,
+                INT,
+                SEMICOLON,
+                EOF
+            ]
+        );
+    }
 }
