@@ -1,8 +1,5 @@
-use std::{io::Cursor, str::Utf8Error};
-
-use regex::Regex;
-
-use crate::token::{get_token_type, Token, TokenType::*};
+use crate::token::{get_token_type, Token};
+use std::io::Cursor;
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -10,27 +7,18 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(input: &str) -> Lexer {
-        Lexer {
+    pub fn new(input: &str) -> Self {
+        Self {
             input: Cursor::new(input.as_bytes().to_vec()),
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token, Utf8Error> {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
+        let token = self.get_token();
+        self.read_char();
 
-        match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
-            Some(Err(e)) => Err(e),
-            Some(Ok(v)) => {
-                let token = self.get_token(&v);
-                self.read_char();
-                token
-            }
-            None => ch_byte_to_str(0).map(|literal| Token {
-                token_type: EOF,
-                literal,
-            }),
-        }
+        token
     }
 
     fn read_char(&mut self) {
@@ -39,190 +27,117 @@ impl Lexer {
 
     fn skip_whitespace(&mut self) {
         loop {
-            match get_cuurent_value(&self.input).map(|i| ch_byte_to_str(i)) {
-                Some(Ok(ref w)) if w == " " || w == "\n" || w == "\t" || w == "\r" => {
-                    self.read_char();
-                }
-                _ => {
-                    break;
-                }
+            if !self.get_cuurent_value().is_ascii_whitespace() {
+                break;
             }
+            self.read_char();
         }
     }
 
-    fn peek_char(&self) -> Result<Option<String>, Utf8Error> {
-        if self.input.position() as usize + 1 >= self.input.get_ref().len() {
-            Ok(None)
+    fn get_cuurent_value(&self) -> u8 {
+        if (self.input.position() + 1) as usize >= self.input.get_ref().len() {
+            0
         } else {
-            let byte = self.input.get_ref()[self.input.position() as usize + 1];
-            std::str::from_utf8(&[byte]).map(|i| Some(i.to_string()))
+            self.input.get_ref()[self.input.position() as usize]
+        }
+    }
+    fn peek_char(&self) -> u8 {
+        if self.input.position() as usize + 1 >= self.input.get_ref().len() {
+            0
+        } else {
+            self.input.get_ref()[self.input.position() as usize + 1]
         }
     }
 
-    fn judge_two_cahr_token(&mut self, literal: &str) -> Result<Token, Utf8Error> {
+    fn judge_two_cahr_token(&mut self) -> Token {
+        let cur_ch = self.get_cuurent_value();
         let next_char = self.peek_char();
 
-        next_char.map(|next| match next.as_deref() {
-            None => Token {
-                token_type: if literal == "=" { ASSIGN } else { BANG },
-                literal: literal.to_string(),
-            },
-            Some(value) => match value {
-                "=" => {
-                    self.read_char();
-                    Token {
-                        token_type: if literal == "=" { EQ } else { NotEQ },
-                        literal: if literal == "=" {
-                            format!("==")
-                        } else {
-                            format!("!=")
-                        },
-                    }
-                }
-                _ => Token {
-                    token_type: if literal == "=" { ASSIGN } else { BANG },
-                    literal: literal.to_string(),
-                },
-            },
-        })
+        if next_char == b'=' {
+            self.read_char();
+            if cur_ch == b'=' {
+                Token::EQ
+            } else {
+                Token::NotEQ
+            }
+        } else if cur_ch == b'=' {
+            Token::ASSIGN
+        } else {
+            Token::BANG
+        }
     }
 
-    fn get_token(&mut self, literal_ref: &str) -> Result<Token, Utf8Error> {
-        let literal = literal_ref.to_string();
-        let maybe_token_type = get_token_type(&literal);
+    fn get_token(&mut self) -> Token {
+        let cur_ch = self.get_cuurent_value();
 
-        if literal_ref == "=" || literal_ref == "!" {
-            return self.judge_two_cahr_token(literal_ref);
+        let maybe_token_type = get_token_type(&[cur_ch]);
+
+        if cur_ch == b'=' || cur_ch == b'!' {
+            return self.judge_two_cahr_token();
         }
 
         if let Some(token_type) = maybe_token_type {
-            Ok(Token {
-                token_type,
-                literal,
-            })
+            token_type
+        } else if cur_ch.is_ascii_alphanumeric() || cur_ch == b'_' {
+            self.read_identifier()
         } else {
-            if is_letter(literal_ref) || is_number(literal_ref) {
-                self.read_identifier()
-            } else {
-                Ok(Token {
-                    token_type: ILLEGAL,
-                    literal,
-                })
-            }
+            Token::ILLEGAL
         }
     }
 
     fn cursor_identifier(&mut self) {
         loop {
-            match get_cuurent_value(&self.input).map(|current_value| ch_byte_to_str(current_value))
-            {
-                Some(Ok(item)) => {
-                    if !is_letter(&item) && !is_number(&item) {
-                        self.input.set_position(self.input.position() - 1);
-                        break;
-                    }
-                    self.read_char();
-                }
-                _ => {
-                    self.input.set_position(self.input.position() - 1);
-                    break;
-                }
+            let item = self.get_cuurent_value();
+
+            if item == 0 {
+                break;
             }
+
+            if !(item.is_ascii_alphabetic() || item == b'_' || item.is_ascii_digit()) {
+                self.input.set_position(self.input.position() - 1);
+                break;
+            }
+            self.read_char();
         }
     }
 
-    fn read_identifier(&mut self) -> Result<Token, Utf8Error> {
+    fn read_identifier(&mut self) -> Token {
         let current_position = self.input.position() as usize;
         self.cursor_identifier();
         let bytes = &self.input.get_ref()[current_position..self.input.position() as usize + 1];
+        let is_number = bytes.iter().filter(|x| !x.is_ascii_digit()).count() == 0;
 
-        std::str::from_utf8(bytes).map(|s| {
-            let token_type = if is_number(s) {
-                INT
-            } else {
-                if let Some(keyword) = get_token_type(s) {
-                    keyword
-                } else {
-                    IDENT
-                }
-            };
-
-            Token {
-                token_type,
-                literal: s.to_string(),
-            }
-        })
+        if is_number {
+            Token::INT
+        } else if let Some(keyword) = get_token_type(bytes) {
+            keyword
+        } else {
+            Token::IDENT
+        }
     }
-}
-
-fn get_cuurent_value(item: &Cursor<Vec<u8>>) -> Option<u8> {
-    if item.position() as usize >= item.get_ref().len() {
-        None
-    } else {
-        Some(item.get_ref()[item.position() as usize])
-    }
-}
-
-fn ch_byte_to_str(ch: u8) -> Result<String, Utf8Error> {
-    std::str::from_utf8(&[ch]).map(|i| i.to_string())
-}
-
-fn is_letter(ch: &str) -> bool {
-    let re = Regex::new(r"^[a-zA-Z_]{1}$");
-    match re {
-        Ok(regex) => regex.is_match(ch),
-        Err(_) => false,
-    }
-}
-
-fn is_number(ch: &str) -> bool {
-    let re = Regex::new(r"\d");
-    match re {
-        Ok(regex) => regex.is_match(ch),
-        Err(_) => false,
-    }
-}
-
-#[test]
-fn sandbox() {
-    assert_eq!(true, true);
 }
 
 #[test]
 fn test_1() {
-    use crate::token::{
-        KeyWord::*,
-        Token,
-        TokenType::{self, *},
-    };
-    let input = "str=+(!=)test{},;let";
+    use crate::token::Token::*;
+    let input = "let=+(!=)test{},;let";
     let mut l = Lexer::new(input);
     let mut tokens: Vec<Token> = vec![];
-    for _n in 0..l.input.get_ref().len() + 1 {
-        let token = l.next_token().unwrap();
+
+    loop {
+        let token = l.next_token();
         println!("{:?}", &token);
-        if token.token_type == EOF {
+        if token == Token::EOF {
             tokens.push(token);
             break;
         }
         tokens.push(token);
     }
-    let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
+
     assert_eq!(
-        token_types,
+        tokens,
         vec![
-            IDENT,
-            ASSIGN,
-            PLUS,
-            LPAREN,
-            NotEQ,
-            RPAREN,
-            IDENT,
-            LBRACE,
-            RBRACE,
-            COMMA,
-            SEMICOLON,
-            KeyWord(LET),
+            LET, ASSIGN, PLUS, LPAREN, NotEQ, RPAREN, IDENT, LBRACE, RBRACE, COMMA, SEMICOLON, LET,
             EOF
         ]
     );
@@ -230,101 +145,31 @@ fn test_1() {
 
 #[test]
 fn test_2() {
-    use crate::token::{
-        KeyWord::*,
-        Token,
-        TokenType::{self, *},
-    };
+    use crate::token::Token::*;
+
     let input = std::fs::read_to_string("files/first.txt").unwrap();
     let mut l = Lexer::new(&input);
     let mut tokens: Vec<Token> = vec![];
-    for _n in 0..l.input.get_ref().len() + 1 {
-        let token = l.next_token().unwrap();
-        println!("{:?}", token);
-        if token.token_type == EOF {
+    loop {
+        let token = l.next_token();
+        println!("{:?}", &token);
+        if token == Token::EOF {
             tokens.push(token);
             break;
         }
         tokens.push(token);
     }
-    let token_types: Vec<TokenType> = tokens.into_iter().map(|token| token.token_type).collect();
+
     assert_eq!(
-        token_types,
+        tokens,
         vec![
-            KeyWord(LET),
-            IDENT,
-            ASSIGN,
-            INT,
-            SEMICOLON,
-            KeyWord(LET),
-            IDENT,
-            ASSIGN,
-            INT,
-            SEMICOLON,
-            KeyWord(LET),
-            IDENT,
-            ASSIGN,
-            KeyWord(FUNCTION),
-            LPAREN,
-            IDENT,
-            COMMA,
-            IDENT,
-            RPAREN,
-            LBRACE,
-            IDENT,
-            PLUS,
-            IDENT,
-            SEMICOLON,
-            RBRACE,
-            SEMICOLON,
-            KeyWord(LET),
-            IDENT,
-            ASSIGN,
-            IDENT,
-            LPAREN,
-            IDENT,
-            COMMA,
-            IDENT,
-            RPAREN,
-            SEMICOLON,
-            BANG,
-            MINUS,
-            SLASH,
-            ASTERISK,
-            INT,
-            SEMICOLON,
-            INT,
-            LT,
-            INT,
-            GT,
-            INT,
-            SEMICOLON,
-            KeyWord(IF),
-            LPAREN,
-            INT,
-            LT,
-            INT,
-            RPAREN,
-            LBRACE,
-            KeyWord(RETURN),
-            KeyWord(TRUE),
-            SEMICOLON,
-            RBRACE,
-            KeyWord(ELSE),
-            LBRACE,
-            KeyWord(RETURN),
-            KeyWord(FALSE),
-            SEMICOLON,
-            RBRACE,
-            INT,
-            EQ,
-            INT,
-            SEMICOLON,
-            INT,
-            NotEQ,
-            INT,
-            SEMICOLON,
-            EOF
+            LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT, ASSIGN, INT, SEMICOLON, LET, IDENT,
+            ASSIGN, FUNCTION, LPAREN, IDENT, COMMA, IDENT, RPAREN, LBRACE, IDENT, PLUS, IDENT,
+            SEMICOLON, RBRACE, SEMICOLON, LET, IDENT, ASSIGN, IDENT, LPAREN, IDENT, COMMA, IDENT,
+            RPAREN, SEMICOLON, BANG, MINUS, SLASH, ASTERISK, INT, SEMICOLON, INT, LT, INT, GT, INT,
+            SEMICOLON, IF, LPAREN, INT, LT, INT, RPAREN, LBRACE, RETURN, TRUE, SEMICOLON, RBRACE,
+            ELSE, LBRACE, RETURN, FALSE, SEMICOLON, RBRACE, INT, EQ, INT, SEMICOLON, INT, NotEQ,
+            INT, SEMICOLON, EOF
         ]
     );
 }

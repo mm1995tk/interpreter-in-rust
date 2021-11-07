@@ -1,5 +1,5 @@
 use interpreter_in_rust::lexer::Lexer;
-use interpreter_in_rust::token::TokenType::EOF;
+use interpreter_in_rust::token::Token;
 use std::io::Write;
 
 fn main() {
@@ -14,17 +14,14 @@ fn main() {
             .expect("Failed to read line.");
 
         let mut lexer = Lexer::new(&input);
-        println!("");
+        println!();
         loop {
-            if let Ok(token) = lexer.next_token() {
-                if token.token_type == EOF {
-                    break;
-                }
-                println!("{:?}", token);
-            } else {
-                panic!()
+            let token = lexer.next_token();
+            if token == Token::EOF {
+                break;
             }
+            println!("{:?}", &token);
         }
-        println!("");
+        println!();
     }
 }

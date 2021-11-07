@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq, Eq)]
-pub enum TokenType {
+pub enum Token {
     ILLEGAL,
     EOF,
     IDENT,
@@ -20,10 +20,6 @@ pub enum TokenType {
     RPAREN,
     LBRACE,
     RBRACE,
-    KeyWord(KeyWord),
-}
-#[derive(Debug, PartialEq, Eq)]
-pub enum KeyWord {
     FUNCTION,
     LET,
     TRUE,
@@ -33,48 +29,34 @@ pub enum KeyWord {
     RETURN,
 }
 
-pub fn get_token_type(literal: &str) -> Option<TokenType> {
-    use crate::token::{KeyWord::*, TokenType::*};
+pub fn get_token_type(literal: &[u8]) -> Option<Token> {
+    use crate::token::Token::*;
 
     match literal {
-        "=" => Some(ASSIGN),
-        ";" => Some(SEMICOLON),
-        "(" => Some(LPAREN),
-        ")" => Some(RPAREN),
-        "," => Some(COMMA),
-        "+" => Some(PLUS),
-        "-" => Some(MINUS),
-        "!" => Some(BANG),
-        "*" => Some(ASTERISK),
-        "/" => Some(SLASH),
-        "<" => Some(LT),
-        ">" => Some(GT),
-        "==" => Some(EQ),
-        "!=" => Some(NotEQ),
-        "{" => Some(LBRACE),
-        "}" => Some(RBRACE),
-        "let" => Some(KeyWord(LET)),
-        "fn" => Some(KeyWord(FUNCTION)),
-        "true" => Some(KeyWord(TRUE)),
-        "false" => Some(KeyWord(FALSE)),
-        "if" => Some(KeyWord(IF)),
-        "else" => Some(KeyWord(ELSE)),
-        "return" => Some(KeyWord(RETURN)),
+        b"=" => Some(ASSIGN),
+        b";" => Some(SEMICOLON),
+        b"(" => Some(LPAREN),
+        b")" => Some(RPAREN),
+        b"," => Some(COMMA),
+        b"+" => Some(PLUS),
+        b"-" => Some(MINUS),
+        b"!" => Some(BANG),
+        b"*" => Some(ASTERISK),
+        b"/" => Some(SLASH),
+        b"<" => Some(LT),
+        b">" => Some(GT),
+        b"==" => Some(EQ),
+        b"!=" => Some(NotEQ),
+        b"{" => Some(LBRACE),
+        b"}" => Some(RBRACE),
+        b"let" => Some(LET),
+        b"fn" => Some(FUNCTION),
+        b"true" => Some(TRUE),
+        b"false" => Some(FALSE),
+        b"if" => Some(IF),
+        b"else" => Some(ELSE),
+        b"return" => Some(RETURN),
+        [0] => Some(EOF),
         _ => None,
     }
-}
-
-pub fn judge_token(literal: &str) -> Option<KeyWord> {
-    use crate::token::KeyWord::*;
-    match literal {
-        "let" => Some(LET),
-        "fn" => Some(FUNCTION),
-        _ => None,
-    }
-}
-
-#[derive(Debug)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub literal: String,
 }
