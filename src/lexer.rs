@@ -26,13 +26,13 @@ impl Lexer {
     }
 
     fn skip_whitespace(&mut self) {
-        while self.get_cuurent_value().is_ascii_whitespace()  {
+        while self.get_cuurent_value().is_ascii_whitespace() {
             self.read_char();
         }
     }
 
     fn get_cuurent_value(&self) -> u8 {
-        if (self.input.position() + 1) as usize >= self.input.get_ref().len() {
+        if self.input.position() as usize >= self.input.get_ref().len() {
             0
         } else {
             self.input.get_ref()[self.input.position() as usize]
@@ -87,11 +87,7 @@ impl Lexer {
         loop {
             let item = self.get_cuurent_value();
 
-            if item == 0 {
-                break;
-            }
-
-            if !(item.is_ascii_alphabetic() || item == b'_' || item.is_ascii_digit()) {
+            if !(item.is_ascii_alphabetic() || item == b'_' || item.is_ascii_digit()) || item == 0 {
                 self.input.set_position(self.input.position() - 1);
                 break;
             }
@@ -143,6 +139,13 @@ mod test {
         tokens
     }
 
+    #[test]
+    fn test_0() {
+        let input = "let";
+        let tokens: Vec<Token> = exec(input);
+
+        assert_eq!(tokens, vec![LET, EOF]);
+    }
     #[test]
     fn test_1() {
         let input = "let=+(!=)test{},;let";
