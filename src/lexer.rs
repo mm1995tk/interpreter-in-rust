@@ -26,10 +26,7 @@ impl Lexer {
     }
 
     fn skip_whitespace(&mut self) {
-        loop {
-            if !self.get_cuurent_value().is_ascii_whitespace() {
-                break;
-            }
+        while self.get_cuurent_value().is_ascii_whitespace()  {
             self.read_char();
         }
     }
