@@ -129,7 +129,7 @@ mod test {
 
         loop {
             let token = l.next_token();
-            println!("{:?}", &token);
+            println!("{}", &token);
             if token == Token::EOF {
                 tokens.push(token);
                 break;

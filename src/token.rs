@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     ILLEGAL,
@@ -27,6 +29,40 @@ pub enum Token {
     IF,
     ELSE,
     RETURN,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::ILLEGAL => write!(f, "ILLEGAL"),
+            Token::EOF => write!(f, "Token: EOF, Literal: '\\u{{0}}'"),
+            Token::IDENT(_literal) => write!(f, "Token: IDENT, Literal"),
+            Token::INT => write!(f, "Token: INT, Literal: impl later"),
+            Token::ASSIGN => write!(f, "Token: ASSIGN, Literal: ="),
+            Token::PLUS => write!(f, "Token: PLUS, Literal: +"),
+            Token::MINUS => write!(f, "Token: MINUS, Literal: -"),
+            Token::BANG => write!(f, "Token: BANG, Literal: !"),
+            Token::ASTERISK => write!(f, "Token: ASTERISK, Literal: *"),
+            Token::SLASH => write!(f, "Token: SLASH, Literal: /"),
+            Token::LT => write!(f, "Token: LT, Literal: <"),
+            Token::GT => write!(f, "Token: GT, Literal: >"),
+            Token::EQ => write!(f, "Token: EQ, Literal: =="),
+            Token::NotEQ => write!(f, "Token: NotEQ, Literal: !="),
+            Token::COMMA => write!(f, "Token: COMMA, Literal: ,"),
+            Token::SEMICOLON => write!(f, "Token: SEMICOLON, Literal: ;"),
+            Token::LPAREN => write!(f, "Token: LPAREN, Literal: ("),
+            Token::RPAREN => write!(f, "Token: RPAREN, Literal: )"),
+            Token::LBRACE => write!(f, "Token: LBRACE, Literal: {{"),
+            Token::RBRACE => write!(f, "Token: RBRACE, Literal: }}"),
+            Token::FUNCTION => write!(f, "Token: FUNCTION, Literal: fn"),
+            Token::LET => write!(f, "Token: LET, Literal: let"),
+            Token::TRUE => write!(f, "Token: TRUE, Literal: true"),
+            Token::FALSE => write!(f, "Token: FALSE, Literal: false"),
+            Token::IF => write!(f, "Token: IF, Literal: if"),
+            Token::ELSE => write!(f, "Token: ELSE, Literal: else"),
+            Token::RETURN => write!(f, "Token: RETURN, Literal: return"),
+        }
+    }
 }
 
 pub fn get_token_type(literal: &[u8]) -> Option<Token> {
