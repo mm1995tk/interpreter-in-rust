@@ -20,7 +20,7 @@ fn main() {
             if token == Token::EOF {
                 break;
             }
-            println!("{:?}", &token);
+            println!("{}", &token);
         }
         println!();
     }
