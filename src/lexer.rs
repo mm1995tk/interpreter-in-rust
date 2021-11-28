@@ -102,7 +102,7 @@ impl Lexer {
         let is_number = bytes.iter().filter(|x| !x.is_ascii_digit()).count() == 0;
 
         if is_number {
-            Token::INT
+            Token::INT(bytes.to_vec())
         } else if let Some(keyword) = get_token_type(bytes) {
             keyword
         } else {
@@ -184,12 +184,12 @@ mod test {
                 LET,
                 IDENT(str_to_vec("five")),
                 ASSIGN,
-                INT,
+                INT(str_to_vec("5")),
                 SEMICOLON,
                 LET,
                 IDENT(str_to_vec("ten")),
                 ASSIGN,
-                INT,
+                INT(str_to_vec("10")),
                 SEMICOLON,
                 LET,
                 IDENT(str_to_vec("add")),
@@ -221,19 +221,19 @@ mod test {
                 MINUS,
                 SLASH,
                 ASTERISK,
-                INT,
+                INT(str_to_vec("5")),
                 SEMICOLON,
-                INT,
+                INT(str_to_vec("5")),
                 LT,
-                INT,
+                INT(str_to_vec("10")),
                 GT,
-                INT,
+                INT(str_to_vec("5")),
                 SEMICOLON,
                 IF,
                 LPAREN,
-                INT,
+                INT(str_to_vec("5")),
                 LT,
-                INT,
+                INT(str_to_vec("10")),
                 RPAREN,
                 LBRACE,
                 RETURN,
@@ -246,13 +246,13 @@ mod test {
                 FALSE,
                 SEMICOLON,
                 RBRACE,
-                INT,
+                INT(str_to_vec("10")),
                 EQ,
-                INT,
+                INT(str_to_vec("10")),
                 SEMICOLON,
-                INT,
+                INT(str_to_vec("10")),
                 NotEQ,
-                INT,
+                INT(str_to_vec("9")),
                 SEMICOLON,
                 EOF
             ]

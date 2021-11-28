@@ -5,7 +5,7 @@ pub enum Token {
     ILLEGAL,
     EOF,
     IDENT(Vec<u8>),
-    INT,
+    INT(Vec<u8>),
     ASSIGN,
     PLUS,
     MINUS,
@@ -34,10 +34,10 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Token::ILLEGAL => write!(f, "ILLEGAL"),
+            Token::ILLEGAL => write!(f, "Token: ILLEGAL"),
             Token::EOF => write!(f, "Token: EOF, Literal: '\\u{{0}}'"),
-            Token::IDENT(_literal) => write!(f, "Token: IDENT, Literal"),
-            Token::INT => write!(f, "Token: INT, Literal: impl later"),
+            Token::IDENT(literal) => write!(f, "Token: IDENT, {}",std::str::from_utf8(literal).unwrap()),
+            Token::INT(literal) => write!(f, "Token: INT, Literal: {}",std::str::from_utf8(literal).unwrap()),
             Token::ASSIGN => write!(f, "Token: ASSIGN, Literal: ="),
             Token::PLUS => write!(f, "Token: PLUS, Literal: +"),
             Token::MINUS => write!(f, "Token: MINUS, Literal: -"),
