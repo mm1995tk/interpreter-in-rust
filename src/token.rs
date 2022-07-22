@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     ILLEGAL,
     EOF,
@@ -36,8 +36,14 @@ impl fmt::Display for Token {
         match self {
             Token::ILLEGAL => write!(f, "Token: ILLEGAL"),
             Token::EOF => write!(f, "Token: EOF, Literal: '\\u{{0}}'"),
-            Token::IDENT(literal) => write!(f, "Token: IDENT, {}",std::str::from_utf8(literal).unwrap()),
-            Token::INT(literal) => write!(f, "Token: INT, Literal: {}",std::str::from_utf8(literal).unwrap()),
+            Token::IDENT(literal) => {
+                write!(f, "Token: IDENT, {}", std::str::from_utf8(literal).unwrap())
+            }
+            Token::INT(literal) => write!(
+                f,
+                "Token: INT, Literal: {}",
+                std::str::from_utf8(literal).unwrap()
+            ),
             Token::ASSIGN => write!(f, "Token: ASSIGN, Literal: ="),
             Token::PLUS => write!(f, "Token: PLUS, Literal: +"),
             Token::MINUS => write!(f, "Token: MINUS, Literal: -"),
