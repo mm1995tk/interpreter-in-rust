@@ -1,7 +1,7 @@
 use crate::token::{get_token_type, Token};
 use std::io::Cursor;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Clone)]
 pub struct Lexer {
     pub input: Cursor<Vec<u8>>,
 }
