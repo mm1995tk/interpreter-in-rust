@@ -1,11 +1,12 @@
 #[derive(PartialEq, Clone, Debug)]
 pub struct Program {
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Statement {
     Let(Ident, Expr),
+    Dummy
 }
 
 #[derive(PartialEq, Clone, Debug)]
