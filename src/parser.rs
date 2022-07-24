@@ -1,4 +1,4 @@
-use crate::ast::{Program, Statement};
+use crate::ast::{Expr, Ident, Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
@@ -21,7 +21,7 @@ impl Parser {
     }
 
     fn next_token(&mut self) -> () {
-        let cur_token = self.lexer.next_token();
+        let cur_token = self.peek_token.clone();
         let peek_token = self.lexer.next_token();
         self.cur_token = cur_token;
         self.peek_token = peek_token;
@@ -44,16 +44,36 @@ impl Parser {
         Program { statements }
     }
 
-    fn parse_statement(&self) -> Option<Statement> {
+    fn parse_statement(&mut self) -> Option<Statement> {
         match self.cur_token {
             Token::LET => self.parse_let_statement(),
             _ => None,
         }
     }
 
-    fn parse_let_statement(&self) -> Option<Statement> {
-        dbg!("{:?}", self);
-        None
+    fn parse_let_statement(&mut self) -> Option<Statement> {
+        match self.peek_token.clone() {
+            Token::IDENT(literal) => {
+                self.next_token();
+
+                if self.peek_token != Token::ASSIGN {
+                    return None;
+                }
+
+                loop {
+                    if self.cur_token == Token::SEMICOLON {
+                        break;
+                    }
+                    self.next_token();
+                }
+
+                let ident = Ident(std::str::from_utf8(&literal).unwrap().to_string());
+                let expr = Expr::Ident(ident.clone());
+
+                Some(Statement::Let(ident, expr))
+            }
+            _ => None,
+        }
     }
 }
 // ##################################################################################################################

@@ -9,7 +9,7 @@ pub enum Statement {
     Dummy
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ident(pub String);
 
 #[derive(Debug)]
