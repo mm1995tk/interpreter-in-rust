@@ -2,7 +2,7 @@ use crate::ast::{Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug)]
 pub struct Parser {
     lexer: Lexer,
     cur_token: Token,
@@ -52,10 +52,11 @@ impl Parser {
     }
 
     fn parse_let_statement(&self) -> Option<Statement> {
-        todo!()
+        dbg!("{:?}", self);
+        None
     }
 }
-
+// ##################################################################################################################
 #[cfg(test)]
 mod test {
     use crate::ast::Statement;
