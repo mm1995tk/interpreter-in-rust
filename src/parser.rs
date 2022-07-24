@@ -7,6 +7,12 @@ pub struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Token,
+    errors: Vec<ParseError>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParseError {
+    UnexpectedToken,
 }
 
 impl Parser {
@@ -17,14 +23,13 @@ impl Parser {
             lexer,
             cur_token,
             peek_token,
+            errors: vec![],
         }
     }
 
     fn next_token(&mut self) -> () {
-        let cur_token = self.peek_token.clone();
-        let peek_token = self.lexer.next_token();
-        self.cur_token = cur_token;
-        self.peek_token = peek_token;
+        self.cur_token = self.peek_token.clone();
+        self.peek_token = self.lexer.next_token();
     }
 
     pub fn parse_program(&mut self) -> Program {
@@ -57,6 +62,7 @@ impl Parser {
                 self.next_token();
 
                 if self.peek_token != Token::ASSIGN {
+                    self.errors.push(ParseError::UnexpectedToken);
                     return None;
                 }
 
@@ -72,7 +78,10 @@ impl Parser {
 
                 Some(Statement::Let(ident, expr))
             }
-            _ => None,
+            _ => {
+                self.errors.push(ParseError::UnexpectedToken);
+                None
+            }
         }
     }
 }
